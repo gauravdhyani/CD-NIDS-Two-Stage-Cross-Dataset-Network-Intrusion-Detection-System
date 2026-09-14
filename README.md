@@ -6,6 +6,7 @@
 [![Machine Learning](https://img.shields.io/badge/Machine%20Learning-Scikit--learn-F7931E)](#technology-stack)
 [![Models](https://img.shields.io/badge/Models-XGBoost%20%7C%20LightGBM-2F855A)](#models-evaluated)
 [![Deployment](https://img.shields.io/badge/Export-Joblib%20%7C%20ONNX-5C2D91)](#model-export-and-deployment-artifacts)
+[![Export](https://img.shields.io/badge/Export-Joblib%20%7C%20ONNX-5C2D91)](#model-export-and-deployment)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](#license)
 [![Status](https://img.shields.io/badge/Status-Research%20Prototype-yellow)](#production-readiness)
 
@@ -20,14 +21,33 @@ The system first detects whether a network flow is benign or malicious, then cla
 
 ## Key Results
 
-| Evaluation setting | Best reported model | Primary metric | Result |
-|---|---|---:|---:|
-| CICIDS2017 binary validation | Decision Tree | F1-score | **0.9918** |
-| CSE-CIC-IDS2018 binary test | Logistic Regression | F1-score | **0.7919** |
-| CSE-CIC-IDS2018 binary test | Logistic Regression | Recall | **0.9242** |
-| CSE-CIC-IDS2018 binary test | Logistic Regression | False-positive rate | **0.4063** |
-| CSE-CIC-IDS2018 multiclass test | LightGBM | Macro F1-score | **0.2501** |
-| Best transferred attack family | LightGBM on BOT | F1-score | **0.97** |
+### Stage 1: CICIDS2017 Binary Validation
+
+| Model | Accuracy | Precision | Recall | F1-score | ROC-AUC | FPR |
+|---|---:|---:|---:|---:|---:|---:|
+| Decision Tree | **0.9968** | **0.9889** | 0.9947 | **0.9918** | 0.9970 | **0.0027** |
+| XGBoost | 0.9879 | 0.9444 | 0.9971 | 0.9700 | **0.9992** | 0.0144 |
+| LightGBM | 0.9865 | 0.9382 | **0.9972** | 0.9668 | **0.9992** | 0.0161 |
+| Logistic Regression | 0.7821 | 0.4735 | 0.9490 | 0.6318 | 0.8940 | 0.2589 |
+
+### Stage 1: CSE-CIC-IDS2018 Binary External Test
+
+| Model | Accuracy | Precision | Recall | F1-score | ROC-AUC | FPR |
+|---|---:|---:|---:|---:|---:|---:|
+| Logistic Regression | **0.7582** | 0.6928 | **0.9242** | **0.7919** | 0.7985 | 0.4063 |
+| XGBoost | 0.6630 | **0.8597** | 0.3861 | 0.5329 | **0.8037** | 0.0625 |
+| Decision Tree | 0.5518 | 0.7510 | 0.1492 | 0.2490 | 0.5436 | **0.0491** |
+
+> The supplied notebook output does not contain the complete LightGBM binary external-test row. Missing values are not inferred.
+
+### Stage 2: CSE-CIC-IDS2018 Multiclass External Test
+
+| Model | Accuracy | Macro precision | Macro recall | Macro F1-score |
+|---|---:|---:|---:|---:|---:|
+| Logistic Regression | **0.3802** | 0.2725 | **0.3419** | 0.2354 |
+| Decision Tree | 0.2200 | 0.3279 | 0.1927 | 0.1724 |
+| XGBoost | 0.3313 | 0.3631 | 0.3087 | 0.2480 |
+| LightGBM | 0.3251 | **0.3708** | 0.3312 | **0.2501** |
 
 ### Central finding
 
@@ -42,12 +62,14 @@ Logistic Regression generalized better by binary F1 and recall, but its **40.63%
 - [Project Overview](#project-overview)
 - [Research Aim](#research-aim)
 - [Motivation](#motivation)
+- [Why Cross-Dataset Evaluation?](#why-cross-dataset-evaluation)
 - [Why a Two-Stage IDS?](#why-a-two-stage-ids)
 - [System Architecture](#system-architecture)
 - [Datasets](#datasets)
 - [Attack Label Normalization](#attack-label-normalization)
 - [Methodology](#methodology)
 - [Exploratory Data Analysis](#exploratory-data-analysis)
+- [Models Evaluated](#models-evaluated)
 - [Stage 1: Binary Attack Detection](#stage-1-binary-attack-detection)
 - [Stage 2: Multiclass Attack Classification](#stage-2-multiclass-attack-classification)
 - [Model Comparison Summary](#model-comparison-summary)
@@ -62,6 +84,8 @@ Logistic Regression generalized better by binary F1 and recall, but its **40.63%
 - [Running the Experiment](#running-the-experiment)
 - [Reproducibility](#reproducibility-parameters)
 - [Conclusion](#conclusion)
+- [Ethical and Operational Notice](#ethical-and-operational-notice)
+- [Dataset References](#dataset-references)
 - [License](#license)
 
 ---
@@ -94,7 +118,11 @@ The results demonstrate that excellent same-dataset validation performance does 
 
 ## Research Aim
 
-The aim of this project is to design, implement, and assess a scalable intrusion-detection pipeline that can:
+The project investigates the following question:
+
+> **To what extent can a Network Intrusion Detection System trained on CICIDS2017 generalize to unseen network traffic from CSE-CIC-IDS2018?**
+
+The pipeline is designed to:
 
 - distinguish benign network traffic from malicious activity;
 - identify the attack family associated with a malicious flow;
@@ -125,6 +153,15 @@ Machine-learning intrusion-detection models often report very high accuracy when
 A practical NIDS must remain effective when the deployment environment differs from the training environment. Cross-dataset evaluation therefore provides a stronger assessment of robustness than a conventional random train-test split.
 
 This project uses CICIDS2017 as the source domain and CSE-CIC-IDS2018 as the external target domain. The resulting performance difference provides evidence of the system's ability, or inability, to generalize across datasets.
+
+---
+
+
+## Why Cross-Dataset Evaluation?
+
+Random train-test splits from one dataset can overestimate operational effectiveness because both partitions share similar traffic-generation procedures, network configurations, attack implementations, class frequencies, collection tools, and dataset-specific artifacts.
+
+A practical NIDS must remain effective when the deployment environment differs from the training environment. Cross-dataset evaluation offers a stronger robustness test by treating CICIDS2017 as the source domain and CSE-CIC-IDS2018 as the external target domain.
 
 ---
 
@@ -411,16 +448,19 @@ Three feature-reduction techniques are applied sequentially.
 
 ### Variance Threshold
 
-```text
-VarianceThreshold(threshold=0.01)
-```
+`StandardScaler` standardizes the feature space. Feature reduction is then performed sequentially:
 
-This removes features with very low variance after scaling.
+1. `VarianceThreshold(threshold=0.01)`;
+2. `SelectKBest(score_func=f_classif, k=30)`;
+3. PCA retaining approximately 95% of variance.
 
 | Processing stage | Features retained |
 |---|---:|
 | Common numeric features | 71 |
 | After variance filtering | 69 |
+| After ANOVA selection | 30 |
+| After PCA | 11 |
+
 
 ### ANOVA Feature Selection
 
@@ -478,38 +518,187 @@ This evaluation measures performance under a source-to-target dataset shift.
 
 ---
 
-## Exploratory Data Analysis
+## Exploratory Data Analysis (EDA)
 
-The project includes the following exploratory analyses:
+This project performs an exploratory analysis of the CICIDS2017 and CSE-CIC-IDS2018 intrusion detection datasets to understand feature behavior, attack distributions, dataset shift, and factors that influence machine learning model performance.
 
-- attack-class distributions for both datasets;
-- benign-versus-attack feature histograms;
-- feature correlation heatmap;
-- scaled feature-variance analysis;
-- ANOVA F-score ranking;
-- cumulative PCA explained variance;
-- two-dimensional PCA projection;
-- model-comparison charts;
-- confusion matrices;
-- ROC curves.
+---
 
 ## Purpose of the EDA
 
 The analysis is used to investigate:
 
-- class imbalance;
-- differences in attack prevalence across years;
-- redundant and correlated network-flow features;
-- candidate features for attack detection;
-- separability of benign and malicious samples;
-- changes in model behavior across datasets.
+- Class imbalance across attack categories.
+- Differences in attack prevalence between CICIDS2017 and CSE-CIC-IDS2018.
+- Redundant and highly correlated network-flow features.
+- Candidate features for attack detection.
+- Separability of benign and malicious samples.
+- Changes in model behavior across datasets.
 
-## EDA Interpretation
+---
 
-The class distributions reveal substantial differences between CICIDS2017 and CSE-CIC-IDS2018. These differences are likely to affect model calibration, classification thresholds, and class-specific recall.
+## Distribution Shift
 
-One limitation is that the variance ranking is computed after standardization. Since StandardScaler transforms most nonconstant features to approximately unit variance, this plot has limited value for comparing feature importance. Raw variance, robust dispersion, mutual information, or model-based importance would provide a more informative analysis.
+A significant distribution shift exists between the two datasets.
 
+### Key Changes
+
+| Attack Type | CICIDS2017 | CSE-CIC-IDS2018 |
+|------------|-----------:|----------------:|
+| BOT | 1,966 | 242,500 |
+| INFILTRATION | 36 | 93,063 |
+| DDOS | 128,027 | 597,627 |
+| PORTSCAN | Present | Absent (retained sample) |
+| HEARTBLEED | Present | Absent (retained sample) |
+
+These changes complicate:
+
+- Model calibration.
+- Class-specific learning.
+- Threshold selection.
+- Fair cross-dataset comparison.
+- Generalization across different network environments.
+
+The class distributions reveal substantial differences between CICIDS2017 and CSE-CIC-IDS2018, which are likely to affect classification performance, class-specific recall, and false-positive behavior.
+
+---
+
+## Top ANOVA Features
+
+ANOVA F-score ranking was used to identify features with the strongest discriminatory power for binary attack detection.
+
+| Rank | Feature |
+|------:|---------|
+| 1 | Bwd Packet Length Std |
+| 2 | Bwd Packet Length Max |
+| 3 | Avg Bwd Segment Size |
+| 4 | Bwd Packet Length Mean |
+| 5 | Packet Length Std |
+| 6 | Max Packet Length |
+| 7 | Packet Length Variance |
+| 8 | Fwd IAT Std |
+| 9 | Packet Length Mean |
+| 10 | Average Packet Size |
+
+### Interpretation
+
+Packet-size statistics, backward-flow characteristics, and inter-arrival-time metrics dominate the ANOVA ranking, suggesting that traffic volume and packet-length behavior provide strong signals for distinguishing benign and malicious network activity.
+
+---
+
+## Correlation Analysis
+
+Highly correlated features were identified to better understand redundancy within the feature space.
+
+| Feature Pair | Reported Correlation |
+|--------------|---------------------:|
+| Packet Length Std ↔ Max Packet Length | 0.98 |
+| Packet Length Std ↔ Packet Length Variance | 0.92 |
+| Max Packet Length ↔ Packet Length Variance | 0.90 |
+| Total Fwd Packets ↔ Total Backward Packets | 1.00 |
+| Total Fwd Packets ↔ Subflow Bwd Bytes | 1.00 |
+| Total Backward Packets ↔ Subflow Bwd Bytes | 1.00 |
+| Fwd IAT Std ↔ Idle Max | 0.92 |
+| Fwd IAT Std ↔ Fwd IAT Total | 0.73 |
+
+### Interpretation
+
+The feature space contains strongly collinear:
+
+- Packet-size features.
+- Timing-related features.
+- Traffic-volume metrics.
+
+Such redundancy can increase model complexity without providing additional information. Feature selection, dimensionality reduction, or regularization may therefore improve model efficiency.
+
+> The reported perfect correlations should be revalidated against the final cleaned schema. Unexpected perfect correlations may indicate duplicated features, data-leakage risks, or incorrectly aligned columns.
+
+---
+
+## PCA Analysis
+
+Principal Component Analysis (PCA) was used to examine the intrinsic dimensionality of the dataset.
+
+### Cumulative Explained Variance
+
+| Components | Approximate Cumulative Variance |
+|-----------:|-------------------------------:|
+| 1 | 47.1% |
+| 2 | 62.5% |
+| 5 | 82.0% |
+| 10 | 94.5% |
+| 11 | 95.6% |
+| 16 | 99.3% |
+
+### Interpretation
+
+Key observations include:
+
+- A single component captures nearly half of the dataset variance.
+- Ten components explain approximately 94.5% of the variance.
+- Sixteen components retain more than 99% of the information.
+
+The two-dimensional PCA projection shows partial separation between benign and malicious traffic; however, considerable overlap remains. This suggests that:
+
+- The dataset contains meaningful structure.
+- Linear separation in two dimensions is insufficient.
+- Nonlinear machine learning models are likely to achieve better discrimination.
+
+---
+
+## Feature Variance Analysis
+
+Variance ranking was computed on standardized features.
+
+### Limitation
+
+Because `StandardScaler` transforms most nonconstant features to approximately unit variance, variance ranking after standardization provides limited insight into actual feature importance.
+
+> Variance ranking after standardization has limited interpretive value because most nonconstant standardized features have approximately unit variance. Raw dispersion measures, mutual information scores, drift statistics, or model-based importance metrics provide more informative feature assessments.
+
+---
+
+## Exploratory Analyses Included
+
+The project includes the following visual and statistical analyses:
+
+- Attack-class distributions for both datasets.
+- Benign-versus-attack feature histograms.
+- Feature correlation heatmaps.
+- Scaled feature-variance analysis.
+- ANOVA F-score feature ranking.
+- Cumulative PCA explained variance plots.
+- Two-dimensional PCA projections.
+- Model-comparison charts.
+- Confusion matrices.
+- ROC curves.
+
+---
+
+## EDA Interpretation Summary
+
+The exploratory analysis highlights several important challenges for intrusion-detection modeling:
+
+1. **Significant Dataset Shift**
+   - Attack prevalence changes dramatically between CICIDS2017 and CSE-CIC-IDS2018.
+   - Some attack categories disappear entirely in the retained 2018 sample.
+
+2. **Strong Feature Redundancy**
+   - Many packet-length and traffic-volume features are highly correlated.
+   - Dimensionality reduction and feature selection may be beneficial.
+
+3. **Informative Network-Flow Features**
+   - Packet-length statistics and backward-flow metrics consistently rank among the most discriminative variables.
+
+4. **Partial Linear Separability**
+   - PCA reveals structure in the data but also demonstrates substantial overlap between benign and malicious traffic.
+   - Nonlinear models are likely required for strong classification performance.
+
+5. **Care Required When Interpreting Standardized Variance**
+   - Post-scaling variance should not be treated as a measure of feature importance.
+   - Alternative importance metrics provide more meaningful insights.
+
+Overall, the EDA demonstrates that class imbalance, distribution shift, correlated features, and limited linear separability are key factors influencing IDS model performance and cross-dataset generalization.
 ---
 
 ## Models Evaluated
@@ -564,9 +753,9 @@ The Decision Tree produces the highest cross-validation accuracy. However, cross
 
 | Model | Accuracy | Precision | Recall | F1-score | ROC-AUC | FPR | Training time |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| **Decision Tree** | **0.9968** | **0.9889** | 0.9947 | **0.9918** | 0.9970 | **0.0027** | 127.52 s |
+| Decision Tree | **0.9968** | **0.9889** | 0.9947 | **0.9918** | 0.9970 | **0.0027** | 127.52 s |
 | XGBoost | 0.9879 | 0.9444 | 0.9971 | 0.9700 | **0.9992** | 0.0144 | 25.26 s |
-| LightGBM | 0.9865 | 0.9382 | **0.9972** | 0.9668 | 0.9992 | 0.0161 | 31.05 s |
+| LightGBM | 0.9865 | 0.9382 | **0.9972** | 0.9668 | **0.9992** | 0.0161 | 31.05 s |
 | Logistic Regression | 0.7821 | 0.4735 | 0.9490 | 0.6318 | 0.8940 | 0.2589 | **6.06 s** |
 
 ### In-Domain Best Model
@@ -582,7 +771,6 @@ However, this result does not establish external robustness.
 | **Logistic Regression** | **0.7582** | 0.6928 | **0.9242** | **0.7919** | 0.7985 | 0.4063 |
 | XGBoost | 0.6630 | **0.8597** | 0.3861 | 0.5329 | **0.8037** | 0.0625 |
 | Decision Tree | 0.5518 | 0.7510 | 0.1492 | 0.2490 | 0.5436 | **0.0491** |
-| LightGBM | Not available in supplied output | Not available | Not available | Not available | Not available | Not available |
 
 The supplied notebook output is truncated before the complete LightGBM binary test row. Missing values are therefore not inferred.
 
@@ -647,12 +835,12 @@ Macro-averaged precision, recall, and F1 are used because the attack classes are
 
 ## CSE-CIC-IDS2018 Multiclass Results
 
-| Model | Accuracy | Macro precision | Macro recall | Macro F1-score | ROC-AUC |
+| Model | Accuracy | Macro precision | Macro recall | Macro F1-score |
 |---|---:|---:|---:|---:|---:|
-| Logistic Regression | **0.3802** | 0.2725 | **0.3419** | 0.2354 | NaN |
-| Decision Tree | 0.2200 | 0.3279 | 0.1927 | 0.1724 | NaN |
-| XGBoost | 0.3313 | 0.3631 | 0.3087 | 0.2480 | NaN |
-| **LightGBM** | 0.3251 | **0.3708** | 0.3312 | **0.2501** | NaN |
+| Logistic Regression | **0.3802** | 0.2725 | **0.3419** | 0.2354 |
+| Decision Tree | 0.2200 | 0.3279 | 0.1927 | 0.1724 |
+| XGBoost | 0.3313 | 0.3631 | 0.3087 | 0.2480 |
+| **LightGBM** | 0.3251 | **0.3708** | 0.3312 | **0.2501** |
 
 ### Best Reported Cross-Dataset Multiclass Model
 
@@ -853,6 +1041,10 @@ The notebook description refers to five-fold cross-validation, while the binary 
 
 Ranking feature variance after standardization is not strongly informative because standardized nonconstant features have approximately unit variance.
 
+## 11. Suspicious Perfect Correlations
+
+Reported correlations of 1.00 between semantically different flow-count and byte features should be checked for duplicated columns, schema-renaming collisions, or analysis errors.
+
 ---
 
 ## Recommended Improvements
@@ -1004,17 +1196,18 @@ This project can support research and development in:
 
 ## Conclusion
 
-This project presents a large-scale two-stage Network Intrusion Detection System trained on CICIDS2017 and externally evaluated on CSE-CIC-IDS2018.
+This project presents a large-scale cross-dataset evaluation of a two-stage NIDS trained on CICIDS2017 and externally evaluated on CSE-CIC-IDS2018.
 
-Within CICIDS2017, the Decision Tree achieves almost perfect binary classification performance with an F1-score of 0.9918. However, its F1-score decreases to 0.2490 on CSE-CIC-IDS2018. XGBoost also experiences a substantial decline. Logistic Regression achieves the highest reported external binary F1-score of 0.7919 and recall of 0.9242, but this improvement is accompanied by a false-positive rate of 0.4063.
+On CICIDS2017 validation, the Decision Tree achieves the best binary F1-score at 0.9918, while LightGBM achieves the highest recall at 0.9972. Feature analysis identifies packet-length, backward-flow, and inter-arrival-time characteristics as prominent binary discriminators. Eleven principal components preserve approximately 95.6% of the selected feature-space variance.
 
-For multiclass attack classification, LightGBM achieves the highest reported macro F1-score of 0.2501. BOT transfers effectively across datasets, while DDOS, INFILTRATION, and WEBATTACK remain difficult to classify reliably.
+External testing changes the model ranking. Logistic Regression achieves the best reported binary F1-score at 0.7919 and recall at 0.9242, but its 0.4063 false-positive rate would produce a heavy alert burden. The Decision Tree falls to 0.2490 F1, demonstrating that near-perfect source-domain validation does not guarantee external robustness.
 
-The central conclusion is:
+For attack-family classification, LightGBM achieves the best reported external macro F1-score at 0.2501. BOT transfers strongly, while DDOS, INFILTRATION, and WEBATTACK remain unreliable. Multiclass attribution is therefore more sensitive to dataset shift than binary attack detection.
 
-> **High performance on a same-dataset validation split is not sufficient evidence of a robust Network Intrusion Detection System. External cross-dataset testing reveals substantial distribution shift and model-specific generalization failure.**
+> **High performance on a same-dataset validation split is not sufficient evidence of a robust NIDS. External cross-dataset testing exposes substantial class-prior shift, feature-distribution shift, and model-specific generalization failure.**
 
-The proposed pipeline is valuable as an academic prototype and cross-dataset benchmark. Further work is required to eliminate preprocessing leakage, preserve test independence, train stage-specific feature pipelines, evaluate the complete cascade, reduce false alerts, and create a complete reproducible deployment artifact.
+The pipeline is useful as an academic prototype and benchmark, but further work is required to remove leakage, preserve test independence, build stage-specific pipelines, evaluate the complete cascade, reduce false alerts, and produce complete reproducible inference artifacts.
+
 
 ---
 
